@@ -1,11 +1,11 @@
 
 services:
     postgres_in_lms_network:
-        container_name: postgres_in_lms_network
+        container_name: postgres_in_lms_network_books
         image: postgres:latest
         restart: unless-stopped
         ports:
-            - "5432:5432"
+            - "5433:5433"
         environment:
             POSTGRES_USER: postgres
             POSTGRES_PASSWORD: password
@@ -20,12 +20,12 @@ services:
             timeout: 5s
 
     rabbitmq_in_lms_network:
-        container_name: rabbitmq_in_lms_network
+        container_name: rabbitmq_in_lms_network_books
         image: rabbitmq:3-management
         restart: unless-stopped
         ports:
-            - "5672:5672" # RabbitMQ main port
-            - "15672:15672" # RabbitMQ management UI
+            - "5673:5673" # RabbitMQ main port
+            - "15673:15673" # RabbitMQ management UI
         environment:
             RABBITMQ_DEFAULT_USER: guest
             RABBITMQ_DEFAULT_PASS: guest
@@ -39,7 +39,7 @@ services:
 
 networks:
     lms_network:
-        name: lms_network
+        name: lms_network_books
 
 volumes:
     postgres_volume:
