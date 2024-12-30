@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build  authnusers microservice') {
+            steps {
+                sh './build_script_1.sh'
+            }
+        }
+
+        stage('Deploy authnusers microservice') {
+            steps {
+                sh './deploy_script_1.sh'
+            }
+        }
+    }
+}

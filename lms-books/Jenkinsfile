@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build books microservice ') {
+            steps {
+                sh './build_script_1.sh'
+            }
+        }
+
+        stage('Deploy books microservice ') {
+            steps {
+                sh './deploy_script_1.sh'
+            }
+        }
+    }
+}
