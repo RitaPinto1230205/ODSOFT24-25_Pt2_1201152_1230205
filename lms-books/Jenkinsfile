@@ -27,21 +27,14 @@ pipeline {
                   }
               }
 
-stage('Check Docker') {
-    steps {
-        sh '''
-            echo "Checking Docker..."
-            DOCKER_PATH=$(which docker)
-            echo "Docker path: $DOCKER_PATH"
-            if [ -z "$DOCKER_PATH" ]; then
-                echo "Docker is not installed or not in PATH."
-                exit 127
-            fi
-            $DOCKER_PATH --version
-            $DOCKER_PATH ps
-        '''
-    }
-}
+stage('Checkout') {
+            steps {
+                // Step to clone the Git repository
+                git branch: "${GIT_BRANCH}",
+                    url: "${GIT_REPO_URL}",
+                    credentialsId: "${CREDENTIALS_ID}"
+            }
+        }
 
 
         stage('Clean') {
