@@ -27,25 +27,15 @@ pipeline {
                   }
               }
 
-stage('Check Docker PATH') {
+stage('Check Docker') {
     steps {
         sh '''
-            echo "PATH: $PATH"
-            which docker || echo "Docker not found in PATH"
+            echo "Using Docker..."
+            /usr/local/bin/docker --version
+            /usr/local/bin/docker ps
         '''
     }
 }
-
-        stage('Check Docker') {
-            steps {
-                sh '''
-                           echo "Verifying Docker..."
-                           docker --version
-                           docker ps
-                       '''
-            }
-        }
-
 
         stage('Clean') {
             steps {
