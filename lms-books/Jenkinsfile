@@ -3,8 +3,8 @@ pipeline {
 
     environment {
 
-        MAVEN_HOME = '/opt/homebrew' // (MacOS)
-        //MAVEN_HOME = '/usr/share/maven' // (Ubuntu)
+       // MAVEN_HOME = '/opt/homebrew' // (MacOS)
+        MAVEN_HOME = '/usr/share/maven' // (Ubuntu)
 
         SERVER_PORT = '2226'
 
