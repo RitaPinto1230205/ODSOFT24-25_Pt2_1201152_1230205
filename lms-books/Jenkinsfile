@@ -2,12 +2,9 @@ pipeline {
     agent any
 
     environment {
-
-       // MAVEN_HOME = '/opt/homebrew' // (MacOS)
-        MAVEN_HOME = '/usr/share/maven' // (Ubuntu)
-
+        MAVEN_HOME = '/opt/homebrew'
+        DOCKER_HOST = 'unix:///var/run/docker.sock'
         SERVER_PORT = '2226'
-
         IMAGE_NAME = 'lmsbooks'
         IMAGE_TAG = 'latest'
     }
@@ -29,7 +26,13 @@ pipeline {
 
               stage('Check Docker') {
                           steps {
-                              sh 'docker --version'
+                              script {
+                                  sh '''
+                                      echo "Verificando Docker..."
+                                      docker --version
+                                      docker info
+                                  '''
+                              }
                           }
                       }
 
