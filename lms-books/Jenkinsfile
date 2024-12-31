@@ -27,12 +27,24 @@ pipeline {
                   }
               }
 
+stage('Check Docker PATH') {
+    steps {
+        sh '''
+            echo "PATH: $PATH"
+            which docker || echo "Docker not found in PATH"
+        '''
+    }
+}
+
         stage('Check Docker') {
             steps {
-                sh 'docker --version'
+                sh '''
+                           echo "Verifying Docker..."
+                           docker --version
+                           docker ps
+                       '''
             }
         }
-
 
 
         stage('Clean') {
