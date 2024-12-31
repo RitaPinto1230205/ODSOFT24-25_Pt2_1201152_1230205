@@ -2,8 +2,8 @@ pipeline {
     agent any
 
      environment {
-      MAVEN_HOME = '/opt/homebrew'
-
+             MAVEN_HOME = '/opt/homebrew'
+              DOCKER_HOST = 'unix:///Users/ritapinto/.docker/run/docker.sock'
              DOCKER_BINARY = '/usr/local/bin/docker'
              SERVER_PORT = '2226'
              IMAGE_NAME = 'lmsbooks'
