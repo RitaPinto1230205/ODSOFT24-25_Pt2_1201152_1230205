@@ -30,12 +30,19 @@ pipeline {
 stage('Check Docker') {
     steps {
         sh '''
-            echo "Using Docker..."
-            $(which docker) --version
-            $(which docker) ps
+            echo "Checking Docker..."
+            DOCKER_PATH=$(which docker)
+            echo "Docker path: $DOCKER_PATH"
+            if [ -z "$DOCKER_PATH" ]; then
+                echo "Docker is not installed or not in PATH."
+                exit 127
+            fi
+            $DOCKER_PATH --version
+            $DOCKER_PATH ps
         '''
     }
 }
+
 
         stage('Clean') {
             steps {
