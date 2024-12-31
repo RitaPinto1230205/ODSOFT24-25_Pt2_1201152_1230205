@@ -1,94 +1,66 @@
 pipeline {
     agent any
 
-     environment {
-        MAVEN_HOME = '/opt/homebrew'
-        DOCKER_PATH = '/Applications/Docker.app/Contents/Resources/bin'
-        PATH = "${DOCKER_PATH}:${env.PATH}"
-     SERVER_PORT = '2226'
+    environment {
+        // Definindo caminhos baseados no SO
+        DOCKER_BINARY = isUnix() ? '/usr/local/bin/docker' : 'docker'
+        MAVEN_BINARY = isUnix() ? (fileExists('/opt/homebrew/bin/mvn') ? '/opt/homebrew/bin/mvn' : '/usr/local/bin/mvn') : 'mvn'
+        SERVER_PORT = '2226'
         IMAGE_NAME = 'lmsbooks'
         IMAGE_TAG = 'latest'
     }
 
     stages {
-
-        stage('Debug Environment') {
+        stage('Check Environment') {
             steps {
-                sh 'env'
+                script {
+                    echo "Running on: ${isUnix() ? 'Unix/Mac' : 'Windows'}"
+                    echo "Maven path: ${MAVEN_BINARY}"
+                    echo "Docker path: ${DOCKER_BINARY}"
+                }
             }
         }
-
-    stage('Check Out') {
-                  steps {
-                      echo 'Checking out the latest code...'
-                      checkout scm
-                  }
-              }
-
-              stage('Check Docker') {
-                          steps {
-                              script {
-                                  sh '''
-                                      echo "Verificando Docker..."
-                                      docker --version
-                                      docker info
-                                  '''
-                              }
-                          }
-                      }
 
         stage('Clean') {
             steps {
                 script {
-                    sh """
-                        ${MAVEN_HOME}/bin/mvn clean install
-                    """
-                }
-            }
-        }
-/*
-        stage('Validate') {
-            steps {
-                script {
-                    sh "'${MAVEN_HOME}/bin/mvn' validate"
-                }
-            }
-        }
-
-        stage('Compile') {
-            steps {
-                script {
-                    sh "'${MAVEN_HOME}/bin/mvn' compile"
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                script {
-                    // Run tests
-                    withEnv(["PATH+JDK=${JAVA_HOME}/bin"]) {
-                        sh "'${MAVEN_HOME}/bin/mvn' test"
+                    if (isUnix()) {
+                        sh "${MAVEN_BINARY} clean install"
+                    } else {
+                        bat "${MAVEN_BINARY} clean install"
                     }
                 }
             }
         }
 
-        stage('Package') {
+        stage('Check Docker') {
             steps {
                 script {
-                    // Package the application
-                    sh "'${MAVEN_HOME}/bin/mvn' package"
+                    if (isUnix()) {
+                        sh """
+                            echo "Verificando Docker..."
+                            ${DOCKER_BINARY} --version
+                            ${DOCKER_BINARY} info
+                        """
+                    } else {
+                        bat """
+                            echo "Verificando Docker..."
+                            ${DOCKER_BINARY} --version
+                            ${DOCKER_BINARY} info
+                        """
+                    }
                 }
             }
         }
-*/
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh """
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    """
+                    if (isUnix()) {
+                        sh "${DOCKER_BINARY} build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                    } else {
+                        bat "${DOCKER_BINARY} build -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+                    }
                 }
             }
         }
@@ -96,24 +68,29 @@ pipeline {
         stage('Deploy with Docker Compose') {
             steps {
                 script {
-                    sh """
+                    if (isUnix()) {
+                        sh """
+                            if ! ${DOCKER_BINARY} ps --filter "name=rabbitmq_in_lms_network" --format '{{.Names}}' | grep -q rabbitmq_in_lms_network; then
+                              ${DOCKER_BINARY} compose -f docker-compose-rabbitmq.yml up -d
+                            else
+                              echo "RabbitMQ container already running."
+                            fi
 
-                        if ! docker ps --filter "name=rabbitmq_in_lms_network" --format '{{.Names}}' | grep -q rabbitmq_in_lms_network; then
-                          docker compose -f docker-compose-rabbitmq.yml up -d
-                        else
-                          echo "RabbitMQ container already running."
-                        fi
+                            if ! ${DOCKER_BINARY} ps --filter "name=postgres_in_lms_network" --format '{{.Names}}' | grep -q postgres_in_lms_network; then
+                              ${DOCKER_BINARY} compose -f docker-compose-postgres.yml up -d
+                            else
+                              echo "Postgres container already running."
+                            fi
 
-                        if ! docker ps --filter "name=postgres_in_lms_network" --format '{{.Names}}' | grep -q postgres_in_lms_network; then
-                          docker compose -f docker-compose-postgres.yml up -d
-                        else
-                          echo "Postgres container already running."
-                        fi
-
-
-                        docker compose -f docker-compose.yml up -d --force-recreate
-
-                    """
+                            ${DOCKER_BINARY} compose -f docker-compose.yml up -d --force-recreate
+                        """
+                    } else {
+                        bat """
+                            ${DOCKER_BINARY} compose -f docker-compose-rabbitmq.yml up -d
+                            ${DOCKER_BINARY} compose -f docker-compose-postgres.yml up -d
+                            ${DOCKER_BINARY} compose -f docker-compose.yml up -d --force-recreate
+                        """
+                    }
                 }
             }
         }
@@ -127,15 +104,4 @@ pipeline {
             echo 'Pipeline failed!'
         }
     }
-
-////if containers are to be removed
-//     post {
-//         always {
-//             echo 'Cleaning up...'
-//             sh """
-//                 docker compose -f docker-compose.yml down || true
-//             """
-//         }
-//     }
-
 }
