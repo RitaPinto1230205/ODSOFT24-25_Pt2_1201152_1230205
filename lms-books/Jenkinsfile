@@ -25,15 +25,9 @@ pipeline {
                   }
               }
 
-              stage('Check Docker') {
+               stage('Check Docker') {
                           steps {
-                              script {
-                                  sh '''
-                                      echo "Verificando Docker..."
-                                      docker --version
-                                      docker info
-                                  '''
-                              }
+                              sh 'docker --version'
                           }
                       }
 
