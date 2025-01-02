@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -17,9 +16,6 @@ pipeline {
             steps {
                 echo 'Checking out the latest code...'
                 checkout scm
-                dir('lms-books') {
-                    echo 'Switching to subdirectory lms-books...'
-                }
             }
         }
 
@@ -39,7 +35,7 @@ pipeline {
             }
         }
 
-        stage('Clean') {
+        stage('Clean and Build Project') {
             steps {
                 dir('lms-books') {
                     script {
@@ -125,7 +121,6 @@ pipeline {
         }
     }
 }
-
 
 
 /*
