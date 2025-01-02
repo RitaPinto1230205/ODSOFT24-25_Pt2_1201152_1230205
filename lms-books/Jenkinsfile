@@ -1,36 +1,36 @@
+
 pipeline {
     agent any
 
-   environment {
-         MAVEN_HOME = '/opt/homebrew'
-         DOCKER_HOST = 'unix:///var/run/docker.sock'
-         DOCKER_BINARY = '/usr/local/bin/docker'
-         SERVER_PORT = '2226'
-         IMAGE_NAME = 'ghcr.io/RitaPinto1230205/odsoft24-25_pt2_1201152_1230205/lmsbooks'
-         IMAGE_TAG = 'latest'
-         GITHUB_TOKEN_ID = 'GITHUB_TOKEN'
-     }
+    environment {
+        MAVEN_HOME = '/opt/homebrew'
+        DOCKER_HOST = 'unix:///var/run/docker.sock'
+        DOCKER_BINARY = '/usr/local/bin/docker'
+        SERVER_PORT = '2226'
+        IMAGE_NAME = 'ghcr.io/ritapinto1230205/odsoft24-25_pt2_1201152_1230205/lmsbooks'
+        IMAGE_TAG = 'latest'
+        GITHUB_TOKEN_ID = 'GITHUB_TOKEN'
+    }
 
     stages {
-
         stage('Debug Environment') {
             steps {
                 sh 'env'
             }
         }
 
-    stage('Check Out') {
-                  steps {
-                      echo 'Checking out the latest code...'
-                      checkout scm
-                  }
-              }
+        stage('Check Out') {
+            steps {
+                echo 'Checking out the latest code...'
+                checkout scm
+            }
+        }
 
-               stage('Check Docker') {
-                          steps {
-                              sh 'docker --version'
-                          }
-                      }
+        stage('Check Docker') {
+            steps {
+                sh 'docker --version'
+            }
+        }
 
         stage('Clean') {
             steps {
@@ -41,6 +41,78 @@ pipeline {
                 }
             }
         }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                        if (isUnix()) {
+                            sh """
+                                echo \$GITHUB_TOKEN | docker login ghcr.io -u M0un0W --password-stdin
+                                docker build -t ${IMAGE_NAME}:latest .
+                            """
+                        } else {
+                            bat """
+                                echo %GITHUB_TOKEN% | docker login ghcr.io -u M0un0W --password-stdin
+                                docker build -t ${IMAGE_NAME}:latest .
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                        if (isUnix()) {
+                            sh """
+                                docker push ${IMAGE_NAME}:latest
+                            """
+                        } else {
+                            bat """
+                                docker push ${IMAGE_NAME}:latest
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Using Docker Compose') {
+            steps {
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            docker-compose down
+                            docker-compose pull
+                            docker-compose up -d
+                        '''
+                    } else {
+                        bat '''
+                            docker-compose down
+                            docker-compose pull
+                            docker-compose up -d
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
+
+
+
 /*
         stage('Validate') {
             steps {
@@ -77,16 +149,19 @@ pipeline {
                 }
             }
         }
-*/
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    sh """
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    """
-                }
-            }
-        }
+
+      stage('Build Docker Image') {
+          steps {
+              script {
+                  def imageName = "ghcr.io/RitaPinto1230205/odsoft24-25_pt2_1201152_1230205/lmsbooks"
+                  def githubTokenId = 'GITHUB_TOKEN'
+                  sh """
+                      docker build -t ${imageName}:${IMAGE_TAG} .
+                  """
+              }
+          }
+      }
+
 
         stage('Deploy with Docker Compose') {
             steps {
