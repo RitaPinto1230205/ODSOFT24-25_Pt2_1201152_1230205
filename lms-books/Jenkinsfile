@@ -9,6 +9,7 @@ pipeline {
         IMAGE_NAME = 'ghcr.io/ritapinto1230205/odsoft24-25_pt2_1201152_1230205/lmsbooks'
         IMAGE_TAG = 'latest'
         GITHUB_TOKEN_ID = 'GITHUB_TOKEN'
+        DEPLOYMENT_APPROVED = false
     }
 
     stages {
@@ -64,7 +65,7 @@ pipeline {
                 }
             }
         }
-
+/*
         stage('Build Docker Image') {
             steps {
                 dir('lms-books') {
@@ -105,9 +106,20 @@ pipeline {
                     }
                 }
             }
-        }
+        }*/
 
-        stage('Deploy Using Docker Compose') {
+         stage('Wait for Manual Approval') {
+                    steps {
+                        input message: 'Deployment is ready. Do you want to continue?', parameters: [
+                            booleanParam(defaultValue: false, description: 'Approve deployment?', name: 'DeployApproval')
+                        ]
+                        script {
+                            DEPLOYMENT_APPROVED = params.DeployApproval
+                        }
+                    }
+                }
+
+      /*  stage('Deploy Using Docker Compose') {
             steps {
                 dir('lms-books') {
                     script {
@@ -128,7 +140,7 @@ pipeline {
                 }
             }
         }
-    }
+    }*/
 
     post {
         success {
