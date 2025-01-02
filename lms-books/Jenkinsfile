@@ -12,6 +12,24 @@ pipeline {
     }
 
     stages {
+    stage('Install Java 21.0.4-amzn with SDKMAN!') {
+                steps {
+                    script {
+                        sh '''
+                            # Instalar SDKMAN! (se necessário)
+                            if [ ! -d "$HOME/.sdkman" ]; then
+                              curl -s "https://get.sdkman.io" | bash
+                              source "$HOME/.sdkman/bin/sdkman-init.sh"
+                            fi
+                            # Instalar a versão do Java 21.0.4-amzn
+                            source "$HOME/.sdkman/bin/sdkman-init.sh"
+                            sdk install java 21.0.4-amzn || true  # Ignora se já estiver instalado
+                            sdk default java 21.0.4-amzn
+                        '''
+                    }
+                }
+            }
+
         stage('Check Out') {
             steps {
                 echo 'Checking out the latest code...'
