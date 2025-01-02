@@ -13,49 +13,60 @@ pipeline {
     }
 
     stages {
-        stage('Debug Environment') {
-            steps {
-                sh 'env'
-            }
-        }
-
         stage('Check Out') {
             steps {
                 echo 'Checking out the latest code...'
                 checkout scm
+                dir('lms-books') {
+                    echo 'Switching to subdirectory lms-books...'
+                }
+            }
+        }
+
+        stage('Debug Environment') {
+            steps {
+                dir('lms-books') {
+                    sh 'env'
+                }
             }
         }
 
         stage('Check Docker') {
             steps {
-                sh 'docker --version'
+                dir('lms-books') {
+                    sh 'docker --version'
+                }
             }
         }
 
         stage('Clean') {
             steps {
-                script {
-                    sh """
-                        ${MAVEN_HOME}/bin/mvn clean install
-                    """
+                dir('lms-books') {
+                    script {
+                        sh """
+                            ${MAVEN_HOME}/bin/mvn clean install
+                        """
+                    }
                 }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
-                        if (isUnix()) {
-                            sh """
-                                echo \$GITHUB_TOKEN | docker login ghcr.io -u M0un0W --password-stdin
-                                docker build -t ${IMAGE_NAME}:latest .
-                            """
-                        } else {
-                            bat """
-                                echo %GITHUB_TOKEN% | docker login ghcr.io -u M0un0W --password-stdin
-                                docker build -t ${IMAGE_NAME}:latest .
-                            """
+                dir('lms-books') {
+                    script {
+                        withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                            if (isUnix()) {
+                                sh """
+                                    echo \$GITHUB_TOKEN | docker login ghcr.io -u M0un0W --password-stdin
+                                    docker build -t ${IMAGE_NAME}:latest .
+                                """
+                            } else {
+                                bat """
+                                    echo %GITHUB_TOKEN% | docker login ghcr.io -u M0un0W --password-stdin
+                                    docker build -t ${IMAGE_NAME}:latest .
+                                """
+                            }
                         }
                     }
                 }
@@ -64,16 +75,18 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
-                        if (isUnix()) {
-                            sh """
-                                docker push ${IMAGE_NAME}:latest
-                            """
-                        } else {
-                            bat """
-                                docker push ${IMAGE_NAME}:latest
-                            """
+                dir('lms-books') {
+                    script {
+                        withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                            if (isUnix()) {
+                                sh """
+                                    docker push ${IMAGE_NAME}:latest
+                                """
+                            } else {
+                                bat """
+                                    docker push ${IMAGE_NAME}:latest
+                                """
+                            }
                         }
                     }
                 }
@@ -82,19 +95,21 @@ pipeline {
 
         stage('Deploy Using Docker Compose') {
             steps {
-                script {
-                    if (isUnix()) {
-                        sh '''
-                            docker-compose down
-                            docker-compose pull
-                            docker-compose up -d
-                        '''
-                    } else {
-                        bat '''
-                            docker-compose down
-                            docker-compose pull
-                            docker-compose up -d
-                        '''
+                dir('lms-books') {
+                    script {
+                        if (isUnix()) {
+                            sh '''
+                                docker-compose down
+                                docker-compose pull
+                                docker-compose up -d
+                            '''
+                        } else {
+                            bat '''
+                                docker-compose down
+                                docker-compose pull
+                                docker-compose up -d
+                            '''
+                        }
                     }
                 }
             }
