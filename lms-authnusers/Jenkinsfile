@@ -73,7 +73,7 @@ pipeline {
                         withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
                             if (isUnix()) {
                                 sh """
-                                    echo \$GITHUB_TOKEN | docker login ghcr.io -u RitaPinto1230205 --password-stdin
+                                   echo "$GITHUB_TOKEN" | docker login ghcr.io -u RitaPinto1230205 --password-stdin
                                     docker build -t ${IMAGE_NAME}:latest .
                                 """
                             } else {
