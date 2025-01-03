@@ -6,7 +6,7 @@ pipeline {
         DOCKER_HOST = 'unix:///var/run/docker.sock'
         DOCKER_BINARY = '/usr/local/bin/docker'
         SERVER_PORT = '2226'
-        IMAGE_NAME = 'ghcr.io/ritapinto1230205/odsoft24-25_pt2_1201152_1230205/lmsbooks'
+        IMAGE_NAME = 'ghcr.io/ritapinto1230205/lmsbooks'
         IMAGE_TAG = 'latest'
         GITHUB_TOKEN_ID = 'GITHUB_TOKEN'
         DEPLOYMENT_APPROVED = false

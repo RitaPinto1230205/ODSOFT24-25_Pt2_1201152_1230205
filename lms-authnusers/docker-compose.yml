@@ -1,7 +1,7 @@
 
 services:
     users:
-        image: lmsusers:latest
+        image: ghcr.io/ritapinto1230205/lmsusers:latest
         container_name: users_in_lms_network
         build:
             context: .
