@@ -1,76 +1,88 @@
 pipeline {
     agent any
-    
-    tools {
-        jdk 'JDK21'
-        maven 'Maven3'
-    }
-    
+
     environment {
-        DOCKER_IMAGE = 'lmsusers'
-        DOCKER_TAG = "${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
+        MAVEN_HOME = '/opt/homebrew'
+        DOCKER_HOST = 'unix:///var/run/docker.sock'
+        DOCKER_BINARY = '/usr/local/bin/docker'
+        SERVER_PORT = '2226'
+        IMAGE_NAME = 'ghcr.io/ritapinto1230205/odsoft24-25_pt2_1201152_1230205/lmsusers'
+        IMAGE_TAG = 'latest'
+        GITHUB_TOKEN_ID = 'GITHUB_TOKEN'
+        DEPLOYMENT_APPROVED = false
     }
 
     stages {
-        stage('Checkout') {
+    stage('Install Java 21.0.4-amzn with SDKMAN!') {
+                steps {
+                    script {
+                        sh '''
+                            # Instalar SDKMAN! (se necessário)
+                            if [ ! -d "$HOME/.sdkman" ]; then
+                              curl -s "https://get.sdkman.io" | bash
+                              source "$HOME/.sdkman/bin/sdkman-init.sh"
+                            fi
+                            # Instalar a versão do Java 21.0.4-amzn
+                            source "$HOME/.sdkman/bin/sdkman-init.sh"
+                            sdk install java 21.0.4-amzn || true  # Ignora se já estiver instalado
+                            sdk default java 21.0.4-amzn
+                        '''
+                    }
+                }
+            }
+
+        stage('Check Out') {
             steps {
-                script {
-                    checkout scm
+                echo 'Checking out the latest code...'
+                checkout scm
+            }
+        }
+
+        stage('Debug Environment') {
+            steps {
+                dir('lms-authnusers') {
+                    sh 'env'
                 }
             }
         }
 
-        stage('Build') {
+        stage('Check Docker') {
             steps {
-                script {
-                    if (isUnix()) {
-                        sh 'mvn clean package -DskipTests'
-                    } else {
-                        bat 'mvn clean package -DskipTests'
+                  dir('lms-authnusers') {
+                    sh 'docker --version'
+                }
+            }
+        }
+
+        stage('Clean and Build Project') {
+            steps {
+                 dir('lms-authnusers') {
+                    script {
+                        sh """
+                            ${MAVEN_HOME}/bin/mvn clean install
+                        """
                     }
                 }
             }
         }
 
-        stage('Test') {
+       stage('Build Docker Image') {
             steps {
-                script {
-                    if (isUnix()) {
-                        sh 'mvn test'
-                    } else {
-                        bat 'mvn test'
-                    }
-                }
-            }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    withSonarQubeEnv('SonarQube') {
-                        if (isUnix()) {
-                            sh 'mvn sonar:sonar'
-                        } else {
-                            bat 'mvn sonar:sonar'
+               dir('lms-authnusers') {
+                    script {
+                        withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                            if (isUnix()) {
+                                sh """
+                                    echo \$GITHUB_TOKEN | docker login ghcr.io -u M0un0W --password-stdin
+                                    docker build -t ${IMAGE_NAME}:latest .
+                                """
+                            } else {
+                                bat """
+                                    echo %GITHUB_TOKEN% | docker login ghcr.io -u M0un0W --password-stdin
+                                    docker build -t ${IMAGE_NAME}:latest .
+                                """
+                            }
                         }
-                    }
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    if (isUnix()) {
-                        sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
-                    } else {
-                        bat "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
                     }
                 }
             }
@@ -78,42 +90,51 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-                        if (isUnix()) {
-                            sh """
-                                docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                                docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
-                                docker push ${DOCKER_IMAGE}:latest
-                            """
-                        } else {
-                            bat """
-                                docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                                docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
-                                docker push ${DOCKER_IMAGE}:latest
-                            """
+                 dir('lms-authnusers') {
+                    script {
+                        withCredentials([string(credentialsId: GITHUB_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                            if (isUnix()) {
+                                sh """
+                                    docker push ${IMAGE_NAME}:latest
+                                """
+                            } else {
+                                bat """
+                                    docker push ${IMAGE_NAME}:latest
+                                """
+                            }
                         }
                     }
                 }
             }
         }
 
-        stage('Deploy') {
-            steps {
-                script {
-                    if (env.BRANCH_NAME == 'develop') {
-                        echo 'Deploying to development environment...'
-                        if (isUnix()) {
-                            sh 'echo "Unix deployment commands here"'
-                        } else {
-                            bat 'echo "Windows deployment commands here"'
+         stage('Wait for Manual Approval') {
+                    steps {
+                        input message: 'Deployment is ready. Do you want to continue?', parameters: [
+                            booleanParam(defaultValue: false, description: 'Approve deployment?', name: 'DeployApproval')
+                        ]
+                        script {
+                            DEPLOYMENT_APPROVED = params.DeployApproval
                         }
-                    } else if (env.BRANCH_NAME == 'main') {
-                        echo 'Deploying to production environment...'
+                    }
+                }
+
+        stage('Deploy Using Docker Compose') {
+            steps {
+                dir('lms-authnusers') {
+                    script {
                         if (isUnix()) {
-                            sh 'echo "Unix production deployment commands here"'
+                            sh '''
+                                docker-compose down
+                                docker-compose pull
+                                docker-compose up -d
+                            '''
                         } else {
-                            bat 'echo "Windows production deployment commands here"'
+                            bat '''
+                                docker-compose down
+                                docker-compose pull
+                                docker-compose up -d
+                            '''
                         }
                     }
                 }
@@ -122,26 +143,11 @@ pipeline {
     }
 
     post {
-        always {
-            cleanWs()
-        }
         success {
-            script {
-                if (isUnix()) {
-                    sh 'echo "Build succeeded on Unix!"'
-                } else {
-                    bat 'echo "Build succeeded on Windows!"'
-                }
-            }
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            script {
-                if (isUnix()) {
-                    sh 'echo "Build failed on Unix!"'
-                } else {
-                    bat 'echo "Build failed on Windows!"'
-                }
-            }
+            echo 'Pipeline failed!'
         }
     }
 }
