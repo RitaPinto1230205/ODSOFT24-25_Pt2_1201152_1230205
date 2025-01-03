@@ -1,7 +1,7 @@
 
 services:
     postgres_in_lms_network:
-        container_name: postgres_in_lms_network_books
+        container_name: postgres_in_lms_network
         image: postgres:latest
         restart: unless-stopped
         ports:
@@ -20,7 +20,7 @@ services:
             timeout: 5s
 
     rabbitmq_in_lms_network:
-        container_name: rabbitmq_in_lms_network_books
+        container_name: rabbitmq_in_lms_network
         image: rabbitmq:3-management
         restart: unless-stopped
         ports:
