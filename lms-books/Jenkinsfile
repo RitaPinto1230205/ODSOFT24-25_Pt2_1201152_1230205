@@ -14,37 +14,22 @@ pipeline {
 
     stages {
           stage('Install Java 21.0.4-amzn with SDKMAN!') {
-              steps {
-                  script {
-                      sh '''
-                          # Garantir que unzip está instalado
-                          if ! command -v unzip &> /dev/null; then
-                            if [ -x "$(command -v apt)" ]; then
-                              sudo apt-get update && sudo apt-get install -y unzip
-                            elif [ -x "$(command -v yum)" ]; then
-                              sudo yum install -y unzip
-                            elif [ -x "$(command -v apk)" ]; then
-                              sudo apk add unzip
-                            else
-                              echo "Gerenciador de pacotes não suportado. Instale 'unzip' manualmente."
-                              exit 1
-                            fi
-                          fi
-
-                          # Instalar SDKMAN! (se necessário)
-                          if [ ! -d "$HOME/.sdkman" ]; then
-                            curl -s "https://get.sdkman.io" | bash
-                            source "$HOME/.sdkman/bin/sdkman-init.sh"
-                          fi
-
-                          # Instalar a versão do Java 21.0.4-amzn
-                          source "$HOME/.sdkman/bin/sdkman-init.sh"
-                          sdk install java 21.0.4-amzn || true  # Ignora se já estiver instalado
-                          sdk default java 21.0.4-amzn
-                      '''
-                  }
-              }
-          }
+                        steps {
+                            script {
+                                sh '''
+                                    # Instalar SDKMAN! (se necessário)
+                                    if [ ! -d "$HOME/.sdkman" ]; then
+                                      curl -s "https://get.sdkman.io" | bash
+                                      source "$HOME/.sdkman/bin/sdkman-init.sh"
+                                    fi
+                                    # Instalar a versão do Java 21.0.4-amzn
+                                    source "$HOME/.sdkman/bin/sdkman-init.sh"
+                                    sdk install java 21.0.4-amzn || true  # Ignora se já estiver instalado
+                                    sdk default java 21.0.4-amzn
+                                '''
+                            }
+                        }
+                    }
 
         stage('Check Out') {
             steps {
